@@ -1,5 +1,7 @@
 package vm
 
+import "github.com/captainlee1024/luag/api"
+
 type Instruction uint32
 
 // Opcode 从指令中提取操作码
@@ -64,4 +66,13 @@ func (instr Instruction) BMode() byte {
 
 func (instr Instruction) CMode() byte {
 	return opcodes[instr.Opcode()].argCMode
+}
+
+func (instr Instruction) Execute(vm api.LuaVM) {
+	action := opcodes[instr.Opcode()].action
+	if action != nil {
+		action(instr, vm)
+	} else {
+		panic(instr.OpName())
+	}
 }
