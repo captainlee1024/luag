@@ -1,12 +1,5 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/captainlee1024/luag/api"
-	"github.com/captainlee1024/luag/state"
-)
-
 //第2章测试
 /*
 func main() {
@@ -190,6 +183,7 @@ func printStack(ls api.LuaState) {
 */
 
 // 第五章测试
+/*
 func main() {
 	ls := state.New()
 	ls.PushInteger(1)
@@ -227,3 +221,4 @@ func printStack(ls api.LuaState) {
 	}
 	fmt.Println()
 }
+*/
