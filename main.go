@@ -1,14 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
-	"github.com/captainlee1024/luag/api"
-	"github.com/captainlee1024/luag/binchunk"
 	"github.com/captainlee1024/luag/state"
-	"github.com/captainlee1024/luag/vm"
 )
 
 //第2章测试
@@ -235,6 +231,7 @@ func printStack(ls api.LuaState) {
 */
 
 // 第六章测试
+/*
 func main() {
 	if len(os.Args) > 1 {
 		data, err := ioutil.ReadFile(os.Args[1])
@@ -280,4 +277,18 @@ func printStack(ls api.LuaState) {
 		}
 	}
 	fmt.Println()
+}
+*/
+
+// 第八章测试
+func main() {
+	if len(os.Args) > 1 {
+		data, err := ioutil.ReadFile(os.Args[1])
+		if err != nil {
+			panic(err)
+		}
+		ls := state.New()
+		ls.Load(data, os.Args[1], "b")
+		ls.Call(0, 0)
+	}
 }

@@ -1,8 +1,19 @@
 package state
 
 type luaStack struct {
+	/* virtual stack */
 	slots []luaValue
 	top   int
+
+	/* call info */
+	// pc,protoType 属于函数调用内部状态，所以放在调用帧里合适
+	// protoType封装成了closure
+	closure *closure
+	varargs []luaValue
+	pc      int
+
+	/* linked list */
+	prev *luaStack
 }
 
 func newLuaStack(size int) *luaStack {
@@ -12,63 +23,86 @@ func newLuaStack(size int) *luaStack {
 	}
 }
 
-func (self *luaStack) check(n int) {
-	free := len(self.slots) - self.top
+func (stack *luaStack) check(n int) {
+	free := len(stack.slots) - stack.top
 	for i := free; i < n; i++ {
-		self.slots = append(self.slots, nil)
+		stack.slots = append(stack.slots, nil)
 	}
 }
 
-func (self *luaStack) push(val luaValue) {
-	if self.top == len(self.slots) {
+func (stack *luaStack) push(val luaValue) {
+	if stack.top == len(stack.slots) {
 		panic("stack overflow!")
 	}
-	self.slots[self.top] = val
-	self.top++
+	stack.slots[stack.top] = val
+	stack.top++
 }
 
-func (self *luaStack) pop() luaValue {
-	if self.top < 1 {
+func (stack *luaStack) pushN(vals []luaValue, n int) {
+	nVals := len(vals)
+	if n < 0 {
+		n = nVals
+	}
+
+	for i := 0; i < n; i++ {
+		if i < nVals {
+			stack.push(vals[i])
+		} else {
+			stack.push(nil)
+		}
+	}
+}
+
+func (stack *luaStack) pop() luaValue {
+	if stack.top < 1 {
 		panic("stack underflow!")
 	}
-	self.top--
-	val := self.slots[self.top]
-	self.slots[self.top] = nil
+	stack.top--
+	val := stack.slots[stack.top]
+	stack.slots[stack.top] = nil
 	return val
 }
 
-func (self *luaStack) absIndex(idx int) int {
+func (stack *luaStack) popN(n int) []luaValue {
+	vals := make([]luaValue, n)
+	for i := n - 1; i >= 0; i-- {
+		vals[i] = stack.pop()
+	}
+	return vals
+}
+
+func (stack *luaStack) absIndex(idx int) int {
 	if idx >= 0 {
 		return idx
 	}
-	return idx + self.top + 1
+	return idx + stack.top + 1
 }
 
-func (self *luaStack) isValid(idx int) bool {
-	absIdx := self.absIndex(idx)
-	return absIdx > 0 && absIdx <= self.top
+func (stack *luaStack) isValid(idx int) bool {
+	absIdx := stack.absIndex(idx)
+	return absIdx > 0 && absIdx <= stack.top
 }
 
-func (self *luaStack) get(idx int) luaValue {
-	absIdx := self.absIndex(idx)
-	if absIdx > 0 && absIdx <= self.top {
-		return self.slots[absIdx-1]
+func (stack *luaStack) get(idx int) luaValue {
+	absIdx := stack.absIndex(idx)
+	if absIdx > 0 && absIdx <= stack.top {
+		return stack.slots[absIdx-1]
 	}
 	return nil
 }
 
-func (self *luaStack) set(idx int, val luaValue) {
-	absIdx := self.absIndex(idx)
-	if absIdx > 0 && absIdx <= self.top {
-		self.slots[absIdx-1] = val
+func (stack *luaStack) set(idx int, val luaValue) {
+	absIdx := stack.absIndex(idx)
+	if absIdx > 0 && absIdx <= stack.top {
+		stack.slots[absIdx-1] = val
 		return
 	}
 	panic("invalid index!")
 }
 
 // 旋转
-func (self *luaStack) reverse(from, to int) {
-	slots := self.slots
+func (stack *luaStack) reverse(from, to int) {
+	slots := stack.slots
 	for from < to {
 		slots[from], slots[to] = slots[to], slots[from]
 		from++
