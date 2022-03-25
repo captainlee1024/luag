@@ -2,6 +2,7 @@ package vm
 
 import "github.com/captainlee1024/luag/api"
 
+// 把当前函数的子函数原型实例化为闭包，并放入指定寄存器中
 func closure(i Instruction, vm api.LuaVM) {
 	a, bx := i.ABx()
 	a += 1
@@ -9,9 +10,10 @@ func closure(i Instruction, vm api.LuaVM) {
 	vm.Replace(a)
 }
 
+// 调用指定寄存器中的函数
 func call(i Instruction, vm api.LuaVM) {
-	// a func
-	// b args
+	// a func 调用函数在寄存器中的位置
+	// b args 参数个数，在寄存器起始位置为a+1
 	// c returns
 	a, b, c := i.ABC()
 	a += 1
@@ -20,6 +22,7 @@ func call(i Instruction, vm api.LuaVM) {
 	_popResults(a, c, vm)
 }
 
+// 把在指定寄存器中的函数和参数推到栈顶
 func _pushFuncAndArgs(a, b int, vm api.LuaVM) (nArgs int) {
 	if b >= 1 {
 		vm.CheckStack(b)
@@ -36,13 +39,18 @@ func _pushFuncAndArgs(a, b int, vm api.LuaVM) (nArgs int) {
 }
 
 func _fixStack(a int, vm api.LuaVM) {
+	// 获取栈顶记录上个调用帧返回值的数量
+	// 目标寄存器索引
 	x := int(vm.ToInteger(-1))
+	// 弹出第一个值（上个调用帧执行结束后，返回值不弹出时，栈顶会记录下返回值个数）
 	vm.Pop(1)
 
 	vm.CheckStack(x - a)
+	//
 	for i := a; i < x; i++ {
 		vm.PushValue(i)
 	}
+	// 旋转栈调整函数和入参顺序
 	vm.Rotate(vm.RegisterCount()+1, x-a)
 }
 
@@ -56,7 +64,7 @@ func _popResults(a, c int, vm api.LuaVM) {
 			vm.Replace(i)
 		}
 	} else {
-		// 需要全部返回，此时，保留下返回值，记录一同多少个值供后面逻辑使用
+		// 此时，保留下返回值，push原本要移动到目标寄存器的索引
 		vm.CheckStack(1)
 		vm.PushInteger(int64(a))
 	}
