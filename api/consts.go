@@ -1,5 +1,12 @@
 package api
 
+const (
+	LUA_MINSTACK = 20
+	LUA_MAXSTACK
+	LUA_REGISTRYINDEX       = -LUA_MAXSTACK - 100
+	LUA_RIDX_GLOBALS  int64 = 2
+)
+
 // 与basic types 对应的有typeOf API
 /* basic types */
 const (

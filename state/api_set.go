@@ -1,5 +1,7 @@
 package state
 
+import "github.com/captainlee1024/luag/api"
+
 // [-2, +0, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_settable
 func (state *luaState) SetTable(idx int) {
@@ -33,4 +35,15 @@ func (state *luaState) setTable(t, k, v luaValue) {
 	}
 
 	panic("not a table!")
+}
+
+func (state *luaState) SetGlobal(name string) {
+	t := state.registry.get(api.LUA_RIDX_GLOBALS)
+	v := state.stack.pop()
+	state.setTable(t, name, v)
+}
+
+func (state *luaState) Register(name string, f api.GoFunction) {
+	state.PushGoFunction(f)
+	state.SetGlobal(name)
 }

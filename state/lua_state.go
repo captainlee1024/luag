@@ -1,5 +1,7 @@
 package state
 
+import "github.com/captainlee1024/luag/api"
+
 // type luaState struct {
 // 	stack *luaStack
 // 	// 实现虚拟机新增的字段
@@ -8,7 +10,8 @@ package state
 // }
 
 type luaState struct {
-	stack *luaStack
+	registry *luaTable // 注册表
+	stack    *luaStack
 }
 
 /*
@@ -29,10 +32,21 @@ func New(stackSize int, proto *binchunk.Prototype) *luaState {
 }
 */
 
+/*
 func New() *luaState {
 	return &luaState{
 		stack: newLuaStack(20),
 	}
+}
+*/
+
+func New() *luaState {
+	registry := newLuaTable(0, 0)
+	registry.put(api.LUA_RIDX_GLOBALS, newLuaTable(0, 0)) // 全局环境
+
+	ls := &luaState{registry: registry}
+	ls.pushLuaStack(newLuaStack(api.LUA_MINSTACK, ls))
+	return ls
 }
 
 func (state *luaState) popLuaStack() {

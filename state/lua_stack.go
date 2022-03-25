@@ -1,5 +1,7 @@
 package state
 
+import "github.com/captainlee1024/luag/api"
+
 type luaStack struct {
 	/* virtual stack */
 	slots []luaValue
@@ -13,13 +15,24 @@ type luaStack struct {
 	pc      int
 
 	/* linked list */
-	prev *luaStack
+	prev  *luaStack
+	state *luaState // 让stack引用state，这样就可以间接访问注册表
 }
 
+/*
 func newLuaStack(size int) *luaStack {
 	return &luaStack{
 		slots: make([]luaValue, size),
 		top:   0,
+	}
+}
+*/
+
+func newLuaStack(size int, state *luaState) *luaStack {
+	return &luaStack{
+		slots: make([]luaValue, size),
+		top:   0,
+		state: state,
 	}
 }
 
@@ -72,6 +85,10 @@ func (stack *luaStack) popN(n int) []luaValue {
 }
 
 func (stack *luaStack) absIndex(idx int) int {
+	if idx <= api.LUA_REGISTRYINDEX { // 伪索引,用来查找全局变量表的
+		return idx
+	}
+
 	if idx >= 0 {
 		return idx
 	}
@@ -79,11 +96,20 @@ func (stack *luaStack) absIndex(idx int) int {
 }
 
 func (stack *luaStack) isValid(idx int) bool {
+	if idx == api.LUA_REGISTRYINDEX {
+		return true
+	}
 	absIdx := stack.absIndex(idx)
 	return absIdx > 0 && absIdx <= stack.top
 }
 
+// get 获取指定寄存器的值
 func (stack *luaStack) get(idx int) luaValue {
+	// 如果是伪索引，返回全局注册表
+	if idx == api.LUA_REGISTRYINDEX {
+		return stack.state.registry
+	}
+
 	absIdx := stack.absIndex(idx)
 	if absIdx > 0 && absIdx <= stack.top {
 		return stack.slots[absIdx-1]
@@ -92,6 +118,10 @@ func (stack *luaStack) get(idx int) luaValue {
 }
 
 func (stack *luaStack) set(idx int, val luaValue) {
+	if idx == api.LUA_REGISTRYINDEX {
+		stack.state.registry = val.(*luaTable)
+		return
+	}
 	absIdx := stack.absIndex(idx)
 	if absIdx > 0 && absIdx <= stack.top {
 		stack.slots[absIdx-1] = val

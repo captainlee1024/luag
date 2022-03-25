@@ -47,3 +47,8 @@ func (state *luaState) getTable(t, k luaValue) api.LuaType {
 
 	panic("not a table!") // todo
 }
+
+func (state *luaState) GetGlobal(name string) api.LuaType {
+	t := state.registry.get(api.LUA_RIDX_GLOBALS)
+	return state.getTable(t, name)
+}

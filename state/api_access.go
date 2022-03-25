@@ -83,6 +83,14 @@ func (state *luaState) IsThread(idx int) bool {
 	return state.Type(idx) == api.LUA_TTHREAD
 }
 
+func (state *luaState) IsGoFunction(idx int) bool {
+	val := state.stack.get(idx)
+	if c, ok := val.(*closure); ok {
+		return c.goFunc != nil
+	}
+	return false
+}
+
 func (state *luaState) IsFunction(idx int) bool {
 	return state.Type(idx) == api.LUA_TFUNCTION
 }
@@ -138,4 +146,12 @@ func (state *luaState) ToStringX(idx int) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func (state *luaState) ToGoFunction(idx int) api.GoFunction {
+	val := state.stack.get(idx)
+	if c, ok := val.(*closure); ok {
+		return c.goFunc
+	}
+	return nil
 }
