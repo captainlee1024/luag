@@ -15,6 +15,7 @@ func jmp(i Instruction, vm api.LuaVM) {
 
 	vm.AddPC(sBx)
 	if a != 0 {
-		panic("todo: jmp!")
+		// panic("todo: jmp!")
+		vm.CloseUpvalues(a) // 局部变量声明周期结束，把处于open状态的引用转换为关闭状态
 	}
 }

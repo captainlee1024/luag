@@ -34,7 +34,17 @@ func (state *luaState) PushString(s string) {
 
 // PushGoFunction 把go 函数转换成go闭包push入栈
 func (state *luaState) PushGoFunction(f api.GoFunction) {
-	state.stack.push(newGoClosure(f))
+	state.stack.push(newGoClosure(f, 0))
+}
+
+// 弹出栈顶n个值作为GoClosure的Upvalue
+// 然后把GoClosure推入栈顶
+func (state *luaState) PushGoClosure(f api.GoFunction, n int) {
+	closure := newGoClosure(f, n)
+	for i := n; i > 0; i-- {
+		val := state.stack.pop()
+		closure.upvals[i-1] = &upvalue{&val}
+	}
 }
 
 // 全局变量表，也是一个普通的表，存放在registry中

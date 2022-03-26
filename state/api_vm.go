@@ -33,17 +33,54 @@ func (self *luaState) RegisterCount() int {
 	return int(self.stack.closure.proto.MaxStackSize)
 }
 
-func (self *luaState) LoadVararg(n int) {
+func (state *luaState) LoadVararg(n int) {
 	if n < 0 {
-		n = len(self.stack.varargs)
+		n = len(state.stack.varargs)
 	}
 
-	self.stack.check(n)
-	self.stack.pushN(self.stack.varargs, n)
+	state.stack.check(n)
+	state.stack.pushN(state.stack.varargs, n)
 }
 
-func (self *luaState) LoadProto(idx int) {
-	proto := self.stack.closure.proto.Protos[idx]
-	closure := newLuaClosure(proto)
-	self.stack.push(closure)
+func (state *luaState) LoadProto(idx int) {
+	/*
+		proto := state.stack.closure.proto.Protos[idx]
+		closure := newLuaClosure(proto)
+		state.stack.push(closure)
+	*/
+	stack := state.stack
+	subProto := stack.closure.proto.Protos[idx]
+	closure := newLuaClosure(subProto)
+	stack.push(closure)
+
+	for i, uvInfo := range subProto.Upvalues {
+		uvIdx := int(uvInfo.Idx)
+		// instack 在当前函数栈中，只需访问当前函数的局部变量
+		if uvInfo.Instack == 1 {
+			if stack.openuvs == nil {
+				stack.openuvs = map[int]*upvalue{}
+			}
+			// 处于open状态的，还在栈上，直接引用即可
+			if openuv, found := stack.openuvs[uvIdx]; found {
+				closure.upvals[i] = openuv
+			} else { // 处于闭合状态的需要保存在其他地方
+				closure.upvals[i] = &upvalue{&stack.slots[uvIdx]}
+				stack.openuvs[uvIdx] = closure.upvals[i]
+			}
+		} else { // 是更外层的变量，说明已经被当前函数的Upvalue捕获，从当前函数Upvalue获取即可
+			closure.upvals[i] = stack.closure.upvals[uvIdx]
+		}
+	}
+}
+
+// 把open列表里的值copy一份，然后从openuv列表中删除
+// TODO:?
+func (state *luaState) CloseUpvalues(a int) {
+	for i, openuv := range state.stack.openuvs {
+		if i >= a-1 {
+			val := *openuv.val
+			openuv.val = &val
+			delete(state.stack.openuvs, i)
+		}
+	}
 }

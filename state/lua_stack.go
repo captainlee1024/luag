@@ -13,6 +13,7 @@ type luaStack struct {
 	closure *closure
 	varargs []luaValue
 	pc      int
+	openuvs map[int]*upvalue // 记录暂时还处于open状态的upvalue
 
 	/* linked list */
 	prev  *luaStack
@@ -96,7 +97,13 @@ func (stack *luaStack) absIndex(idx int) int {
 }
 
 func (stack *luaStack) isValid(idx int) bool {
-	if idx == api.LUA_REGISTRYINDEX {
+	if idx < api.LUA_REGISTRYINDEX { // upbalues
+		uvIdx := api.LUA_REGISTRYINDEX - idx - 1
+		c := stack.closure
+		return c != nil && uvIdx < len(c.upvals)
+	}
+
+	if idx == api.LUA_REGISTRYINDEX { // 全局注册表
 		return true
 	}
 	absIdx := stack.absIndex(idx)
@@ -105,6 +112,15 @@ func (stack *luaStack) isValid(idx int) bool {
 
 // get 获取指定寄存器的值
 func (stack *luaStack) get(idx int) luaValue {
+	if idx < api.LUA_REGISTRYINDEX { // upvalues
+		uvIdx := api.LUA_REGISTRYINDEX - idx - 1
+		c := stack.closure
+		if c == nil || uvIdx >= len(c.upvals) {
+			return nil
+		}
+		return *(c.upvals[uvIdx].val)
+	}
+
 	// 如果是伪索引，返回全局注册表
 	if idx == api.LUA_REGISTRYINDEX {
 		return stack.state.registry
@@ -118,10 +134,20 @@ func (stack *luaStack) get(idx int) luaValue {
 }
 
 func (stack *luaStack) set(idx int, val luaValue) {
-	if idx == api.LUA_REGISTRYINDEX {
+	if idx < api.LUA_REGISTRYINDEX { // upvalues
+		uvIdx := api.LUA_REGISTRYINDEX - idx - 1
+		c := stack.closure
+		if c != nil && uvIdx < len(c.upvals) {
+			*(c.upvals[uvIdx].val) = val
+		}
+		return
+	}
+
+	if idx == api.LUA_REGISTRYINDEX { // 全局注册表
 		stack.state.registry = val.(*luaTable)
 		return
 	}
+
 	absIdx := stack.absIndex(idx)
 	if absIdx > 0 && absIdx <= stack.top {
 		stack.slots[absIdx-1] = val
