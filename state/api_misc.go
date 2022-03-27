@@ -57,3 +57,10 @@ func (ls *luaState) Next(idx int) bool {
 	}
 	panic("table expected!")
 }
+
+// [-1, +0, v]
+// http://www.lua.org/manual/5.3/manual.html#lua_error
+func (ls *luaState) Error() int {
+	err := ls.stack.pop()
+	panic(err)
+}

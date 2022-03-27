@@ -80,7 +80,9 @@ type LuaState interface {
 	Concat(n int)
 	RawLen(idx int) uint
 	Next(idx int) bool
+	Error() int
 	/* load and call functions (load and run Lua code) */
 	Load(chunk []byte, chunkName, mod string) int
 	Call(nArgs, nResults int)
+	PCall(nArgs, nResults, msgh int) int
 }
