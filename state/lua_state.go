@@ -49,13 +49,13 @@ func New() *luaState {
 	return ls
 }
 
-func (state *luaState) popLuaStack() {
-	stack := state.stack
-	state.stack = stack.prev
+func (ls *luaState) popLuaStack() {
+	stack := ls.stack
+	ls.stack = stack.prev
 	stack.prev = nil
 }
 
-func (state *luaState) pushLuaStack(stack *luaStack) {
-	stack.prev = state.stack
-	state.stack = stack
+func (ls *luaState) pushLuaStack(stack *luaStack) {
+	stack.prev = ls.stack
+	ls.stack = stack
 }

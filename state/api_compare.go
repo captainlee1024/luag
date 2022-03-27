@@ -2,20 +2,20 @@ package state
 
 import "github.com/captainlee1024/luag/api"
 
-func (state *luaState) Compare(idx1, idx2 int, op api.CompareOp) bool {
-	if !state.stack.isValid(idx1) || !state.stack.isValid(idx2) {
+func (ls *luaState) Compare(idx1, idx2 int, op api.CompareOp) bool {
+	if !ls.stack.isValid(idx1) || !ls.stack.isValid(idx2) {
 		return false
 	}
 
-	a := state.stack.get(idx1)
-	b := state.stack.get(idx2)
+	a := ls.stack.get(idx1)
+	b := ls.stack.get(idx2)
 	switch op {
 	case api.LUA_OPEQ:
-		return _eq(a, b, state)
+		return _eq(a, b, ls)
 	case api.LUA_OPLT:
-		return _lt(a, b, state)
+		return _lt(a, b, ls)
 	case api.LUA_OPLE:
-		return _le(a, b, state)
+		return _le(a, b, ls)
 	default:
 		panic("invalid compare op!")
 	}

@@ -1,54 +1,54 @@
 package state
 
-func (state *luaState) PC() int {
-	return state.stack.pc
+func (ls *luaState) PC() int {
+	return ls.stack.pc
 }
 
-func (state *luaState) AddPC(n int) {
-	state.stack.pc += n
+func (ls *luaState) AddPC(n int) {
+	ls.stack.pc += n
 }
 
-func (state *luaState) Fetch() uint32 {
+func (ls *luaState) Fetch() uint32 {
 	// TODO: 获取一条指令和运行该指令的详细过程
-	i := state.stack.closure.proto.Code[state.stack.pc]
-	state.stack.pc++
+	i := ls.stack.closure.proto.Code[ls.stack.pc]
+	ls.stack.pc++
 	return i
 }
 
-func (state *luaState) GetConst(idx int) {
-	c := state.stack.closure.proto.Constants[idx]
-	state.stack.push(c)
+func (ls *luaState) GetConst(idx int) {
+	c := ls.stack.closure.proto.Constants[idx]
+	ls.stack.push(c)
 }
 
 // GetRK 将指定常量或栈值推入栈顶
-func (state *luaState) GetRK(rk int) {
+func (ls *luaState) GetRK(rk int) {
 	if rk > 0xFF { // constant 常量
-		state.GetConst(rk & 0xFF)
+		ls.GetConst(rk & 0xFF)
 	} else { // register 寄存器
-		state.PushValue(rk + 1)
+		ls.PushValue(rk + 1)
 	}
 }
 
-func (self *luaState) RegisterCount() int {
-	return int(self.stack.closure.proto.MaxStackSize)
+func (ls *luaState) RegisterCount() int {
+	return int(ls.stack.closure.proto.MaxStackSize)
 }
 
-func (state *luaState) LoadVararg(n int) {
+func (ls *luaState) LoadVararg(n int) {
 	if n < 0 {
-		n = len(state.stack.varargs)
+		n = len(ls.stack.varargs)
 	}
 
-	state.stack.check(n)
-	state.stack.pushN(state.stack.varargs, n)
+	ls.stack.check(n)
+	ls.stack.pushN(ls.stack.varargs, n)
 }
 
-func (state *luaState) LoadProto(idx int) {
+func (ls *luaState) LoadProto(idx int) {
 	/*
-		proto := state.stack.closure.proto.Protos[idx]
+		proto := ls.stack.closure.proto.Protos[idx]
 		closure := newLuaClosure(proto)
-		state.stack.push(closure)
+		ls.stack.push(closure)
 	*/
-	stack := state.stack
+	stack := ls.stack
 	subProto := stack.closure.proto.Protos[idx]
 	closure := newLuaClosure(subProto)
 	stack.push(closure)
@@ -75,12 +75,12 @@ func (state *luaState) LoadProto(idx int) {
 
 // 把open列表里的值copy一份，然后从openuv列表中删除
 // TODO:?
-func (state *luaState) CloseUpvalues(a int) {
-	for i, openuv := range state.stack.openuvs {
+func (ls *luaState) CloseUpvalues(a int) {
+	for i, openuv := range ls.stack.openuvs {
 		if i >= a-1 {
 			val := *openuv.val
 			openuv.val = &val
-			delete(state.stack.openuvs, i)
+			delete(ls.stack.openuvs, i)
 		}
 	}
 }

@@ -53,26 +53,26 @@ var (
 	bnot  = func(a, _ int64) int64 { return ^a }
 )
 
-func (state *luaState) Arith(op api.ArithOp) {
+func (ls *luaState) Arith(op api.ArithOp) {
 	var a, b luaValue // operands
-	b = state.stack.pop()
+	b = ls.stack.pop()
 	if op != api.LUA_OPUNM && op != api.LUA_OPBNOT {
-		a = state.stack.pop()
+		a = ls.stack.pop()
 	} else {
 		a = b
 	}
 
 	operator := operators[op]
 	if result := _arith(a, b, operator); result != nil {
-		state.stack.push(result)
+		ls.stack.push(result)
 		return
 	}
 
 	// 只有当一个操作数不是或这无法自动转换为数字时，会返回nil
 	// 此时，才会调用对应的元方法
 	mm := operator.metamethod
-	if result, ok := callMetamethod(a, b, mm, state); ok {
-		state.stack.push(result)
+	if result, ok := callMetamethod(a, b, mm, ls); ok {
+		ls.stack.push(result)
 		return
 	}
 
