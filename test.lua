@@ -1,16 +1,9 @@
-function newCounter ()
-  local count = 0
-  return function () -- anonymous function
-    count = count + 1
-    return count
-  end
+t = {a = 1, b = 2, c = 3}
+for k, v in pairs(t) do
+  print(k, v)
 end
 
-c1 = newCounter()
-print(c1()) --> 1
-print(c1()) --> 2
-
-c2 = newCounter()
-print(c2()) --> 1
-print(c1()) --> 3
-print(c2()) --> 2
+t = {"a", "b", "c"}
+for k, v in ipairs(t) do
+  print(k, v)
+end

@@ -10,6 +10,11 @@ type luaTable struct {
 	metatable *luaTable // 元表
 	arr       []luaValue
 	_map      map[luaValue]luaValue
+
+	/* used by next() */
+	keys    map[luaValue]luaValue
+	lastKey luaValue
+	changed bool
 }
 
 func newLuaTable(nArr, nRec int) *luaTable {
@@ -113,4 +118,36 @@ func (lt *luaTable) _expandArray() {
 			break
 		}
 	}
+}
+
+func (lt *luaTable) nextKey(key luaValue) luaValue {
+	if lt.keys == nil || (key == nil && lt.changed) {
+		lt.initKeys()
+		lt.changed = false
+	}
+
+	nextKey := lt.keys[key]
+	if nextKey == nil && key != nil && key != lt.lastKey {
+		panic("invalid key to 'next'")
+	}
+
+	return nextKey
+}
+
+func (lt *luaTable) initKeys() {
+	lt.keys = make(map[luaValue]luaValue)
+	var key luaValue = nil
+	for i, v := range lt.arr {
+		if v != nil {
+			lt.keys[key] = int64(i + 1)
+			key = int64(i + 1)
+		}
+	}
+	for k, v := range lt._map {
+		if v != nil {
+			lt.keys[key] = k
+			key = k
+		}
+	}
+	lt.lastKey = key
 }

@@ -75,11 +75,11 @@ type LuaState interface {
 	SetGlobal(name string)
 	Register(name string, f GoFunction)
 	SetMetatable(idx int)
-	/* miscellaneous functi
 	/* miscellaneous functions */
 	Len(idx int)
 	Concat(n int)
 	RawLen(idx int) uint
+	Next(idx int) bool
 	/* load and call functions (load and run Lua code) */
 	Load(chunk []byte, chunkName, mod string) int
 	Call(nArgs, nResults int)
