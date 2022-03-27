@@ -22,7 +22,19 @@ func (state *luaState) Load(chunk []byte, chunkName, mod string) int {
 func (state *luaState) Call(nArgs, nResults int) {
 	// 按照索引找到要调用的值,判断是否是函数
 	val := state.stack.get(-(nArgs + 1))
-	if c, ok := val.(*closure); ok {
+	c, ok := val.(*closure)
+
+	if !ok { // 如果被调的值不是函数，则尝试执行元方法
+		if mf := getMetafield(val, "__call", state); mf != nil {
+			if c, ok = mf.(*closure); ok {
+				state.stack.push(val)
+				state.Insert(-(nArgs + 2))
+				nArgs += 1
+			}
+		}
+	}
+
+	if ok {
 		if c.proto != nil {
 			//fmt.Printf("call %s<%d,%d>\n", c.proto.Source, c.proto.LineDefined, c.proto.LastLineDefined)
 			state.callLuaClosure(nArgs, nResults, c)

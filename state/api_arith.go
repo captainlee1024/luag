@@ -8,25 +8,26 @@ import (
 )
 
 type operator struct {
+	metamethod  string
 	integerFunc func(int64, int64) int64
 	floatFunc   func(float64, float64) float64
 }
 
 var operators = []operator{
-	{iadd, fadd},
-	{isub, fsub},
-	{imul, fmul},
-	{imod, fmod},
-	{nil, pow},
-	{nil, div},
-	{iidiv, fidiv},
-	{band, nil},
-	{bor, nil},
-	{bxor, nil},
-	{shl, nil},
-	{shr, nil},
-	{iunm, funm},
-	{bnot, nil},
+	{"__add", iadd, fadd},
+	{"__sub", isub, fsub},
+	{"__mul", imul, fmul},
+	{"__mod", imod, fmod},
+	{"__pow", nil, pow},
+	{"__div", nil, div},
+	{"__idiv", iidiv, fidiv},
+	{"__band", band, nil},
+	{"__bor", bor, nil},
+	{"__bxor", bxor, nil},
+	{"__shl", shl, nil},
+	{"__shr", shr, nil},
+	{"__unm", iunm, funm},
+	{"__bnot", bnot, nil},
 }
 
 var (
@@ -64,9 +65,18 @@ func (state *luaState) Arith(op api.ArithOp) {
 	operator := operators[op]
 	if result := _arith(a, b, operator); result != nil {
 		state.stack.push(result)
-	} else {
-		panic("arithmetic error!")
+		return
 	}
+
+	// 只有当一个操作数不是或这无法自动转换为数字时，会返回nil
+	// 此时，才会调用对应的元方法
+	mm := operator.metamethod
+	if result, ok := callMetamethod(a, b, mm, state); ok {
+		state.stack.push(result)
+		return
+	}
+
+	panic("arithmetic error!")
 }
 
 func _arith(a, b luaValue, op operator) luaValue {

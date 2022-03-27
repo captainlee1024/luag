@@ -11,17 +11,17 @@ func (state *luaState) Compare(idx1, idx2 int, op api.CompareOp) bool {
 	b := state.stack.get(idx2)
 	switch op {
 	case api.LUA_OPEQ:
-		return _eq(a, b)
+		return _eq(a, b, state)
 	case api.LUA_OPLT:
-		return _lt(a, b)
+		return _lt(a, b, state)
 	case api.LUA_OPLE:
-		return _le(a, b)
+		return _le(a, b, state)
 	default:
 		panic("invalid compare op!")
 	}
 }
 
-func _eq(a, b luaValue) bool {
+func _eq(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case nil:
 		return b == nil
@@ -49,13 +49,20 @@ func _eq(a, b luaValue) bool {
 		default:
 			return false
 		}
+	case *luaTable: //当且仅当两个操作数是不同的表是，才会尝试执行__eq元方法
+		if y, ok := b.(*luaTable); ok && x != y && ls != nil {
+			if result, ok := callMetamethod(x, y, "__eq", ls); ok {
+				return convertToBoolean(result)
+			}
+		}
+		return a == b
 	default:
 		return a == b
 
 	}
 }
 
-func _lt(a, b luaValue) bool {
+func _lt(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case string:
 		if y, ok := b.(string); ok {
@@ -76,10 +83,17 @@ func _lt(a, b luaValue) bool {
 			return x < float64(y)
 		}
 	}
-	panic("comparison error!")
+	//	panic("comparison error!")
+
+	// 上面都不满足，尝试执行__lt
+	if result, ok := callMetamethod(a, b, "__lt", ls); ok {
+		return convertToBoolean(result)
+	} else {
+		panic("comparison error!")
+	}
 }
 
-func _le(a, b luaValue) bool {
+func _le(a, b luaValue, ls *luaState) bool {
 	switch x := a.(type) {
 	case string:
 		if y, ok := b.(string); ok {
@@ -100,5 +114,16 @@ func _le(a, b luaValue) bool {
 			return x <= float64(y)
 		}
 	}
-	panic("comparison error!")
+	//panic("comparison error!")
+
+	// 上面都不满足时：
+	// 1. 尝试执行__le
+	// 2. 找不到__le, 尝试执行__lt
+	if result, ok := callMetamethod(a, b, "__le", ls); ok {
+		return convertToBoolean(result)
+	} else if result, ok := callMetamethod(b, a, "__lt", ls); ok {
+		return !convertToBoolean(result)
+	} else {
+		panic("comparison error!")
+	}
 }

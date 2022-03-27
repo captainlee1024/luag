@@ -67,7 +67,7 @@ func concat(i Instruction, vm api.LuaVM) {
 		vm.PushValue(i)
 	}
 	vm.Concat(n)
-	vm.Remove(a)
+	vm.Replace(a)
 }
 
 // if((RK(B) op RK(C) ~= A)) then pc++

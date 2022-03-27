@@ -20,35 +20,91 @@ func (state *luaState) CreateTable(nArr, nRec int) {
 func (state *luaState) GetTable(idx int) api.LuaType {
 	t := state.stack.get(idx)
 	k := state.stack.pop()
-	return state.getTable(t, k)
+	return state.getTable(t, k, false)
 }
 
 // [-0, +1, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_getfield
 func (state *luaState) GetField(idx int, k string) api.LuaType {
 	t := state.stack.get(idx)
-	return state.getTable(t, k)
+	return state.getTable(t, k, false)
 }
 
 // [-0, +1, e]
 // http://www.lua.org/manual/5.3/manual.html#lua_geti
 func (state *luaState) GetI(idx int, i int64) api.LuaType {
 	t := state.stack.get(idx)
-	return state.getTable(t, i)
+	return state.getTable(t, i, false)
+}
+
+// [-1, +1, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_rawget
+func (self *luaState) RawGet(idx int) api.LuaType {
+	t := self.stack.get(idx)
+	k := self.stack.pop()
+	return self.getTable(t, k, true)
+}
+
+// [-0, +1, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_rawgeti
+func (self *luaState) RawGetI(idx int, i int64) api.LuaType {
+	t := self.stack.get(idx)
+	return self.getTable(t, i, true)
+}
+
+// [-0, +(0|1), –]
+// http://www.lua.org/manual/5.3/manual.html#lua_getmetatable
+func (self *luaState) GetMetatable(idx int) bool {
+	val := self.stack.get(idx)
+
+	if mt := getMetatable(val, self); mt != nil {
+		self.stack.push(mt)
+		return true
+	} else {
+		return false
+	}
 }
 
 // push(t[k])
-func (state *luaState) getTable(t, k luaValue) api.LuaType {
+func (state *luaState) getTable(t, k luaValue, raw bool) api.LuaType {
+	//if tbl, ok := t.(*luaTable); ok {
+	//	v := tbl.get(k)
+	//	state.stack.push(v)
+	//	return typeOf(v)
+	//}
+	//
+	//
+	//panic("not a table!")
+
 	if tbl, ok := t.(*luaTable); ok {
 		v := tbl.get(k)
-		state.stack.push(v)
-		return typeOf(v)
+		if raw || v != nil || !tbl.hasMetafield("__index") {
+			state.stack.push(v)
+			return typeOf(v)
+		}
 	}
 
-	panic("not a table!") // todo
+	if !raw {
+		if mf := getMetafield(t, "__index", state); mf != nil {
+			switch x := mf.(type) {
+			// 如果是表，则表的访问操作转发给该表，否则执行__index函数
+			case *luaTable:
+				return state.getTable(x, k, false)
+			case *closure:
+				state.stack.push(mf)
+				state.stack.push(t)
+				state.stack.push(k)
+				state.Call(2, 1)
+				v := state.stack.get(-1)
+				return typeOf(v)
+			}
+		}
+	}
+
+	panic("index error!")
 }
 
 func (state *luaState) GetGlobal(name string) api.LuaType {
 	t := state.registry.get(api.LUA_RIDX_GLOBALS)
-	return state.getTable(t, name)
+	return state.getTable(t, name, false)
 }

@@ -8,6 +8,20 @@ import (
 
 /*与push类方法相反，access方法需要使用栈里面的数据*/
 
+// [-0, +0, –]
+// http://www.lua.org/manual/5.3/manual.html#lua_rawlen
+func (state *luaState) RawLen(idx int) uint {
+	val := state.stack.get(idx)
+	switch x := val.(type) {
+	case string:
+		return uint(len(x))
+	case *luaTable:
+		return uint(x.len())
+	default:
+		return 0
+	}
+}
+
 // TODO
 
 func (state *luaState) TypeName(tp api.LuaType) string {
@@ -97,7 +111,7 @@ func (state *luaState) IsFunction(idx int) bool {
 
 func (state *luaState) ToBoolean(idx int) bool {
 	val := state.stack.get(idx)
-	return converToBoolean(val)
+	return convertToBoolean(val)
 }
 
 func (state *luaState) ToInteger(idx int) int64 {
